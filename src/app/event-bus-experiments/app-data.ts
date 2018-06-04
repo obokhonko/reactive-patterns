@@ -1,8 +1,6 @@
 import * as _ from 'lodash';
 import {Lesson} from "../shared/model/lesson";
-import {testLessons} from "../shared/model/test-lessons";
 
-// This is the OBSERVER pattern implementation
 export interface Observer {
   next(data: any);
 }
@@ -31,16 +29,18 @@ class SubjectImplementation implements Subject {
 
 }
 
-class DataStore {
+class DataStore implements Observable {
   private lessons: Lesson[] = [];
   private lessonsListSubject = new SubjectImplementation();
-  public $lessonsList: Observable = {
-    subscribe: obs => {
-      this.lessonsListSubject.subscribe(obs);
-      obs.next(this.lessons);
-    },
-    unsubscribe: obs => this.lessonsListSubject.unsubscribe(obs)
-  };
+
+  subscribe(obs: Observer) {
+    this.lessonsListSubject.subscribe(obs);
+    obs.next(this.lessons);
+  }
+
+  unsubscribe(obs: Observer) {
+    this.lessonsListSubject.unsubscribe(obs);
+  }
 
   broadcast() {
     this.lessonsListSubject.next(_.cloneDeep(this.lessons));

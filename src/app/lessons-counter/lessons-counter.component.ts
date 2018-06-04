@@ -10,7 +10,7 @@ export class LessonsCounterComponent implements OnInit, Observer {
   lessonsCounter = 0;
 
   ngOnInit() {
-    store.$lessonsList.subscribe(this);
+    store.subscribe(this);
   }
 
   next(data: any) {
