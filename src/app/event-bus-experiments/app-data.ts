@@ -1,110 +1,41 @@
 import * as _ from 'lodash';
 import {Lesson} from "../shared/model/lesson";
+import {BehaviorSubject, Observer, Observable} from 'rxjs';
 
-export interface Observer {
-  next(data: any);
-}
+class DataStore {
+  private lessonsListSubject = new BehaviorSubject([]);
+  public lessonsList$: Observable<Lesson[]> = this.lessonsListSubject.asObservable();
 
-export interface Observable {
-  subscribe(obs: Observer);
-  unsubscribe(obs: Observer);
-}
-
-interface Subject extends Observer, Observable {}
-
-class SubjectImplementation implements Subject {
-  private observers: Observer[] = [];
-
-  next(data: any) {
-    this.observers.forEach(obs => obs.next(data));
-  }
-
-  subscribe(obs: Observer) {
-    this.observers.push(obs);
-  }
-
-  unsubscribe(obs: Observer) {
-    _.remove(this.observers, item => item === obs);
-  }
-
-}
-
-class DataStore implements Observable {
-  private lessons: Lesson[] = [];
-  private lessonsListSubject = new SubjectImplementation();
-
-  subscribe(obs: Observer) {
-    this.lessonsListSubject.subscribe(obs);
-    obs.next(this.lessons);
-  }
-
-  unsubscribe(obs: Observer) {
-    this.lessonsListSubject.unsubscribe(obs);
-  }
-
-  broadcast() {
-    this.lessonsListSubject.next(_.cloneDeep(this.lessons));
+  private cloneLessons() {
+    return _.cloneDeep(this.lessonsListSubject.getValue());
   }
 
   initializeLessonsList(newList: Lesson[]) {
-    this.lessons = _.cloneDeep(newList);
-    this.broadcast();
+    this.lessonsListSubject.next(_.cloneDeep(newList));
   }
 
   addLesson(newLesson: Lesson) {
-    this.lessons.push(_.cloneDeep(newLesson));
-    this.broadcast();
+    const lessons = this.cloneLessons();
+    lessons.push(newLesson);
+
+    this.lessonsListSubject.next(lessons);
   }
 
   deleteLesson(deleted: Lesson) {
-    _.remove(this.lessons, lesson => lesson.id === deleted.id);
-    this.broadcast();
+    const lessons = this.cloneLessons();
+    _.remove(lessons, lesson => lesson.id === deleted.id);
+
+    this.lessonsListSubject.next(lessons);
   }
 
   toggleLessonView(toggled: Lesson) {
-    const toggledLesson = _.find(this.lessons, lesson => lesson.id === toggled.id);
+    const lessons = this.cloneLessons();
+    const toggledLesson = _.find(lessons, lesson => lesson.id === toggled.id);
+
     toggledLesson.completed = !toggledLesson.completed;
-    this.broadcast();
+    this.lessonsListSubject.next(lessons);
   }
 }
 
 export const store = new DataStore();
 
-// This is the event bus implementation
-// export const LESSONS_LIST_AVAILABLE = 'NEW_LIST_AVAILABLE';
-// export const ADD_NEW_LESSON = 'ADD_NEW_LESSON';
-// export interface Observer {
-//   notify(data: any);
-// }
-//
-// interface Subject {
-//   registerObserver(eventType: string, obs: Observer);
-//   unregisterObserver(eventType: string, obs: Observer);
-//   notifyObservers(eventType: string, data: any);
-// }
-//
-// class EventBus implements Subject {
-//   private observers: {[key: string]: Observer[]} = {};
-//
-//   private observersPerEventType(eventType: string): Observer[] {
-//     if (!this.observers[eventType]) {
-//       this.observers[eventType] = [];
-//     }
-//
-//     return this.observers[eventType];
-//   }
-//
-//   registerObserver(eventType: string, obs: Observer) {
-//     this.observersPerEventType(eventType).push(obs);
-//   }
-//
-//   unregisterObserver(eventType: string, obs: Observer) {
-//     _.remove(this.observersPerEventType(eventType), item => item === obs);
-//   }
-//
-//   notifyObservers(eventType: string, data: any) {
-//     this.observersPerEventType(eventType).forEach(obs => obs.notify(data));
-//   }
-// }
-//
-// export const GlobalEventBus = new EventBus();
